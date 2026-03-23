@@ -1,0 +1,5 @@
+backup_abalone/
+sagemaker-pipeline.json
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
