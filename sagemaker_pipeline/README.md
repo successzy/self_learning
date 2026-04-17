@@ -141,17 +141,36 @@ sagemaker_pipeline/
 
 ## 前置条件
 
-1. AWS 账户, SageMaker 执行角色 (需要 S3 + Bedrock 权限)
-2. 实例配额:
-   - ml.g6e.xlarge processing: >= 1
-   - ml.g4dn.xlarge training: >= 1
-   - ml.m7i.xlarge processing: >= 1
-3. DINOv3-ViT-S/16 预训练权重上传到 S3:
+### IAM 角色 (`SageMakerPipelineRole`)
+
+信任策略需允许 `sagemaker.amazonaws.com` AssumeRole。
+
+| AWS 服务 | 用途 | 所需权限 |
+|----------|------|----------|
+| **SageMaker** | Pipeline、Processing Job、Training Job、Model Registry | `AmazonSageMakerFullAccess` |
+| **S3** | 训练数据、模型、生成图片的读写 | `s3:GetObject`, `s3:PutObject`, `s3:ListBucket` (对 default bucket) |
+| **Bedrock** | Pipeline 2 调用 Qwen3-VL (`qwen.qwen3-vl-235b-a22b`) | `bedrock:InvokeModel` (region: us-east-1) |
+| **ECR** | 拉取 PyTorch 框架容器镜像 | `ecr:GetAuthorizationToken`, `ecr:BatchGetImage` 等 |
+| **CloudWatch Logs** | 训练/处理作业日志 | `logs:CreateLogGroup`, `logs:PutLogEvents` 等 |
+
+最简配置: 挂 `AmazonSageMakerFullAccess` (已包含 S3、ECR、CloudWatch) + `AmazonBedrockFullAccess` 两个托管策略。
+
+### 实例配额 (Service Quotas)
+
+| 实例类型 | 用途 | 最少配额 |
+|----------|------|----------|
+| `ml.g6e.xlarge` | Processing (生图, L40S 48GB) | >= 1 |
+| `ml.g4dn.xlarge` | Training (训练, T4 16GB) | >= 1 |
+| `ml.m7i.xlarge` | Processing (预处理/推理/评估) | >= 1 |
+
+### 其他
+
+1. DINOv3-ViT-S/16 预训练权重上传到 S3:
    ```
    s3://<bucket>/flowers-dinov3-pipeline/pretrained/
    ```
-4. HuggingFace Token (访问 Qwen-Image-Edit-2511)
-5. Bedrock 中 Qwen3-VL-235B 模型访问权限 (us-east-1)
+2. HuggingFace Token (访问 Qwen-Image-Edit-2511), 通过环境变量 `HF_TOKEN` 传入
+3. Bedrock 中 Qwen3-VL-235B 模型访问权限 (us-east-1), 需在 Bedrock 控制台开启模型访问
 
 ## 运行
 
